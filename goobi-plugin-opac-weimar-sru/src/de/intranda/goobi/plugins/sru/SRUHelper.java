@@ -61,7 +61,6 @@ public class SRUHelper {
     @SuppressWarnings("deprecation")
     public static Node parseResult(HaabOpacImport opac, String catalogue, String resultString) throws IOException, JDOMException,
             ParserConfigurationException {
-
         // removed validation against external dtd
         SAXBuilder builder = new SAXBuilder(false);
         builder.setValidation(false);
@@ -133,7 +132,7 @@ public class SRUHelper {
             }
 
             if (isMultiVolume) {
-                String anchorResult = SRUHelper.search(catalogue, "pica.ppn=", anchorIdentifier);
+                String anchorResult = SRUHelper.search(catalogue, "pica.ppn", anchorIdentifier);
                 Document anchorDoc = new SAXBuilder().build(new StringReader(anchorResult), "utf-8");
 
                 // srw:searchRetrieveResponse
