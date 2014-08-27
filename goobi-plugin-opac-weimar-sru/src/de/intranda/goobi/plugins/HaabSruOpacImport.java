@@ -38,8 +38,8 @@ import de.unigoettingen.sub.search.opac.ConfigOpacCatalogue;
 import de.unigoettingen.sub.search.opac.ConfigOpacDoctype;
 
 @PluginImplementation
-public class HaabOpacImport implements IOpacPlugin {
-    private static final Logger logger = Logger.getLogger(HaabOpacImport.class);
+public class HaabSruOpacImport implements IOpacPlugin {
+    private static final Logger logger = Logger.getLogger(HaabSruOpacImport.class);
 
     private int hitcount;
     private String gattung = "Aa";
@@ -107,12 +107,12 @@ public class HaabOpacImport implements IOpacPlugin {
 
     @Override
     public String getTitle() {
-        return "HAAB";
+        return "HAABSRU";
     }
 
     @Override
     public String getDescription() {
-        return "HAAB";
+        return "HAABSRU";
     }
 
     @Override

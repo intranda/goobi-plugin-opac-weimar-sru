@@ -34,7 +34,7 @@ import ugh.fileformats.opac.PicaPlus;
 
 import com.googlecode.fascinator.redbox.sru.SRUClient;
 
-import de.intranda.goobi.plugins.HaabOpacImport;
+import de.intranda.goobi.plugins.HaabSruOpacImport;
 import de.sub.goobi.helper.UghHelper;
 
 public class SRUHelper {
@@ -59,7 +59,7 @@ public class SRUHelper {
     }
 
     @SuppressWarnings("deprecation")
-    public static Node parseResult(HaabOpacImport opac, String catalogue, String resultString) throws IOException, JDOMException,
+    public static Node parseResult(HaabSruOpacImport opac, String catalogue, String resultString) throws IOException, JDOMException,
             ParserConfigurationException {
         // removed validation against external dtd
         SAXBuilder builder = new SAXBuilder(false);
@@ -180,7 +180,7 @@ public class SRUHelper {
         return null;
     }
 
-    public static Fileformat parsePicaFormat(HaabOpacImport opac, Node pica, Prefs prefs) throws ReadException, PreferencesException, TypeNotAllowedForParentException {
+    public static Fileformat parsePicaFormat(HaabSruOpacImport opac, Node pica, Prefs prefs) throws ReadException, PreferencesException, TypeNotAllowedForParentException {
 
         PicaPlus pp = new PicaPlus(prefs);
         pp.read(pica);
@@ -200,7 +200,7 @@ public class SRUHelper {
     
     
     
-    public static void checkMyOpacResult(HaabOpacImport opac, DigitalDocument inDigDoc, Prefs inPrefs, Node pica) {
+    public static void checkMyOpacResult(HaabSruOpacImport opac, DigitalDocument inDigDoc, Prefs inPrefs, Node pica) {
         Document myJdomDoc = new DOMBuilder().build(pica.getOwnerDocument());
         Element myFirstHit = myJdomDoc.getRootElement().getChild("record");
         
