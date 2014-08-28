@@ -11,6 +11,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.log4j.Logger;
+import org.goobi.production.plugin.interfaces.IOpacPlugin;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -192,7 +193,7 @@ public class SRUHelper {
         DocStruct dsBoundBook = dd.createDocStruct(dst);
         dd.setPhysicalDocStruct(dsBoundBook);
         
-        checkMyOpacResult(opac,dd, prefs, pica);
+        checkResult(opac,dd, prefs, pica);
         
         return ff;
 
@@ -200,16 +201,22 @@ public class SRUHelper {
     
     
     
-    public static void checkMyOpacResult(HaabSruOpacImport opac, DigitalDocument inDigDoc, Prefs inPrefs, Node pica) {
+    public static void checkResult(HaabSruOpacImport opac, DigitalDocument inDigDoc, Prefs inPrefs, Node pica) {
         Document myJdomDoc = new DOMBuilder().build(pica.getOwnerDocument());
         Element myFirstHit = myJdomDoc.getRootElement().getChild("record");
+        
+        checkMyOpacResult(opac, inDigDoc, inPrefs, myFirstHit);
+
+    }
+    
+    public static void checkMyOpacResult(IOpacPlugin opac, DigitalDocument inDigDoc, Prefs inPrefs, Element myFirstHit) {
         
         UghHelper ughhelp = new UghHelper();
         DocStruct topstruct = inDigDoc.getLogicalDocStruct();
         DocStruct boundbook = inDigDoc.getPhysicalDocStruct();
         DocStruct topstructChild = null;
         Element mySecondHit = null;
-
+        
         /*
          * -------------------------------- bei Multivolumes noch das Child in xml und docstruct ermitteln --------------------------------
          */
@@ -225,12 +232,34 @@ public class SRUHelper {
         /*
          * -------------------------------- vorhandene PPN als digitale oder analoge einsetzen --------------------------------
          */
-        String ppn = getElementFieldValue(myFirstHit, "003@", "0");
+        String epn = getElementFieldValue(myFirstHit, "203@", "0");
         ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", "");
         if (opac.getGattung().toLowerCase().startsWith("o")) {
-            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", ppn);
+            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", epn);
         } else {
-            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDSource", ppn);
+            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDSource", epn);
+        }
+
+        /*
+         * -------------------------------- wenn es ein multivolume ist, dann auch die PPN prüfen --------------------------------
+         */
+        if (topstructChild != null && mySecondHit != null) {
+            String secondHitepn = getElementFieldValue(mySecondHit, "203@", "0");
+            ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", "");
+            if (opac.getGattung().toLowerCase().startsWith("o")) {
+                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", secondHitepn);
+            } else {
+                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDSource", secondHitepn);
+            }
+        }
+
+        
+        String ppn = getElementFieldValue(myFirstHit, "003@", "0");
+        ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDPicaPPNDigital", "");
+        if (opac.getGattung().toLowerCase().startsWith("o")) {
+            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDPicaPPNDigital", ppn);
+        } else {
+            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDPicaPPNSource", ppn);
         }
 
         /*
@@ -238,14 +267,14 @@ public class SRUHelper {
          */
         if (topstructChild != null && mySecondHit != null) {
             String secondHitppn = getElementFieldValue(mySecondHit, "003@", "0");
-            ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", "");
+            ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDPicaPPNDigital", "");
             if (opac.getGattung().toLowerCase().startsWith("o")) {
-                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", secondHitppn);
+                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDPicaPPNDigital", secondHitppn);
             } else {
-                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDSource", secondHitppn);
+                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDPicaPPNSource", secondHitppn);
             }
         }
-
+        
         /*
          * -------------------------------- den Main-Title bereinigen --------------------------------
          */

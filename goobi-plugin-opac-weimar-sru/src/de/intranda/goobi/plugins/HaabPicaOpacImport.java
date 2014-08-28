@@ -21,10 +21,10 @@ package de.intranda.goobi.plugins;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Iterator;
-import java.util.StringTokenizer;
 
 import net.xeoh.plugins.base.annotations.PluginImplementation;
 
@@ -36,6 +36,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.DOMBuilder;
 import org.jdom2.output.DOMOutputter;
+import org.jdom2.output.XMLOutputter;
 import org.w3c.dom.Node;
 
 import ugh.dl.DigitalDocument;
@@ -43,10 +44,9 @@ import ugh.dl.DocStruct;
 import ugh.dl.DocStructType;
 import ugh.dl.Fileformat;
 import ugh.dl.Prefs;
-import ugh.exceptions.TypeNotAllowedAsChildException;
-import ugh.exceptions.TypeNotAllowedForParentException;
 import ugh.fileformats.mets.XStream;
 import ugh.fileformats.opac.PicaPlus;
+import de.intranda.goobi.plugins.sru.SRUHelper;
 import de.sub.goobi.config.ConfigurationHelper;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.UghHelper;
@@ -198,10 +198,9 @@ public class HaabPicaOpacImport implements IOpacPlugin {
          * -------------------------------- aus Opac-Ergebnis RDF-Datei erzeugen --------------------------------
          */
         /* XML in Datei schreiben */
-//        		 XMLOutputter outputter = new XMLOutputter();
-//        		 FileOutputStream output = new
-//        		 FileOutputStream("/home/robert/temp_opac.xml");
-//        		 outputter.output(myJdomDoc.getRootElement(), output);
+//        XMLOutputter outputter = new XMLOutputter();
+//        FileOutputStream output = new FileOutputStream("/home/robert/temp_opac.xml");
+//        outputter.output(myJdomDoc.getRootElement(), output);
 
         /* myRdf temporär in Datei schreiben */
         // myRdf.write("D:/temp.rdf.xml");
@@ -217,7 +216,8 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         DocStruct dsBoundBook = dd.createDocStruct(dst);
         dd.setPhysicalDocStruct(dsBoundBook);
         /* Inhalt des RDF-Files überprüfen und ergänzen */
-        checkMyOpacResult(ff.getDigitalDocument(), inPrefs, myFirstHit, verbose);
+        SRUHelper.checkMyOpacResult(this, ff.getDigitalDocument(), inPrefs, myFirstHit);
+
         // rdftemp.write("D:/PicaRdf.xml");
         return ff;
     }
@@ -279,194 +279,215 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         return this.hitcount;
     }
 
-    /*
-     * ##################################################### ##################################################### ## ## Erg�nze das Docstruct um
-     * zusätzliche Opac-Details ## ##################################################### ####################################################
-     */
-
-    public void checkMyOpacResult(DigitalDocument inDigDoc, Prefs inPrefs, Element myFirstHit, boolean verbose) {
-        UghHelper ughhelp = new UghHelper();
-        DocStruct topstruct = inDigDoc.getLogicalDocStruct();
-        DocStruct boundbook = inDigDoc.getPhysicalDocStruct();
-        DocStruct topstructChild = null;
-        Element mySecondHit = null;
-
-        /*
-         * -------------------------------- bei Multivolumes noch das Child in xml und docstruct ermitteln --------------------------------
-         */
-        // if (isMultivolume()) {
-        if (getOpacDocType().isMultiVolume()) {
-            try {
-                topstructChild = topstruct.getAllChildren().get(0);
-            } catch (RuntimeException e) {
-            }
-            mySecondHit = (Element) myFirstHit.getParentElement().getChildren().get(1);
-        }
-
-        /*
-         * -------------------------------- vorhandene PPN als digitale oder analoge einsetzen --------------------------------
-         */
-        String ppn = getElementFieldValue(myFirstHit, "003@", "0");
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", "");
-        if (this.gattung.toLowerCase().startsWith("o")) {
-            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", ppn);
-        } else {
-            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDSource", ppn);
-        }
-
-        /*
-         * -------------------------------- wenn es ein multivolume ist, dann auch die PPN prüfen --------------------------------
-         */
-        if (topstructChild != null && mySecondHit != null) {
-            String secondHitppn = getElementFieldValue(mySecondHit, "003@", "0");
-            ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", "");
-            if (this.gattung.toLowerCase().startsWith("o")) {
-                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", secondHitppn);
-            } else {
-                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDSource", secondHitppn);
-            }
-        }
-
-        /*
-         * -------------------------------- den Main-Title bereinigen --------------------------------
-         */
-        String myTitle = getElementFieldValue(myFirstHit, "021A", "a");
-        /*
-         * wenn der Fulltittle nicht in dem Element stand, dann an anderer Stelle nachsehen (vor allem bei Contained-Work)
-         */
-        if (myTitle == null || myTitle.length() == 0) {
-            myTitle = getElementFieldValue(myFirstHit, "021B", "a");
-        }
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMain", myTitle.replaceAll("@", ""));
-
-        /*
-         * -------------------------------- Sorting-Titel mit Umlaut-Konvertierung --------------------------------
-         */
-        if (myTitle.indexOf("@") != -1) {
-            myTitle = myTitle.substring(myTitle.indexOf("@") + 1);
-        }
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMainShort", myTitle);
-
-        /*
-         * -------------------------------- bei multivolumes den Main-Title bereinigen --------------------------------
-         */
-        if (topstructChild != null && mySecondHit != null) {
-            String fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replaceAll("@", "");
-            ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMain", fulltitleMulti);
-        }
-
-        /*
-         * -------------------------------- bei multivolumes den Sorting-Titel mit Umlaut-Konvertierung --------------------------------
-         */
-        if (topstructChild != null && mySecondHit != null) {
-            String sortingTitleMulti = getElementFieldValue(mySecondHit, "021A", "a");
-            if (sortingTitleMulti.indexOf("@") != -1) {
-                sortingTitleMulti = sortingTitleMulti.substring(sortingTitleMulti.indexOf("@") + 1);
-            }
-            ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMainShort", sortingTitleMulti);
-            // sortingTitle = sortingTitleMulti;
-        }
-
-        /*
-         * -------------------------------- Sprachen - Konvertierung auf zwei Stellen --------------------------------
-         */
-        String sprache = getElementFieldValue(myFirstHit, "010@", "a");
-        sprache = ughhelp.convertLanguage(sprache);
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "DocLanguage", sprache);
-
-        /*
-         * -------------------------------- bei multivolumes die Sprachen - Konvertierung auf zwei Stellen --------------------------------
-         */
-        if (topstructChild != null && mySecondHit != null) {
-            String spracheMulti = getElementFieldValue(mySecondHit, "010@", "a");
-            spracheMulti = ughhelp.convertLanguage(spracheMulti);
-            ughhelp.replaceMetadatum(topstructChild, inPrefs, "DocLanguage", spracheMulti);
-        }
-
-        /*
-         * -------------------------------- ISSN --------------------------------
-         */
-        String issn = getElementFieldValue(myFirstHit, "005A", "0");
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "ISSN", issn);
-
-        /*
-         * -------------------------------- Copyright --------------------------------
-         */
-        String copyright = getElementFieldValue(myFirstHit, "037I", "a");
-        ughhelp.replaceMetadatum(boundbook, inPrefs, "copyrightimageset", copyright);
-
-        /*
-         * -------------------------------- Format --------------------------------
-         */
-        String format = getElementFieldValue(myFirstHit, "034I", "a");
-        ughhelp.replaceMetadatum(boundbook, inPrefs, "FormatSourcePrint", format);
-
-        /*
-         * -------------------------------- Umfang --------------------------------
-         */
-        String umfang = getElementFieldValue(myFirstHit, "034D", "a");
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "SizeSourcePrint", umfang);
-
-        /*
-         * -------------------------------- Signatur --------------------------------
-         */
-        String sig = getElementFieldValue(myFirstHit, "209A", "c");
-        if (sig.length() > 0) {
-            sig = "<" + sig + ">";
-        }
-        sig += getElementFieldValue(myFirstHit, "209A", "f") + " ";
-        sig += getElementFieldValue(myFirstHit, "209A", "a");
-        ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
-        if (sig.trim().length() == 0) {
-            myLogger.debug("Signatur part 1: " + sig);
-            myLogger.debug(myFirstHit.getChildren());
-            sig = getElementFieldValue(myFirstHit, "209A/01", "c");
-            if (sig.length() > 0) {
-                sig = "<" + sig + ">";
-            }
-            sig += getElementFieldValue(myFirstHit, "209A/01", "f") + " ";
-            sig += getElementFieldValue(myFirstHit, "209A/01", "a");
-            if (mySecondHit != null) {
-                sig += getElementFieldValue(mySecondHit, "209A", "f") + " ";
-                sig += getElementFieldValue(mySecondHit, "209A", "a");
-            }
-            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
-        }
-        myLogger.debug("Signatur full: " + sig);
-
-        /*
-         * -------------------------------- Ats Tsl Vorbereitung --------------------------------
-         */
-        myTitle = myTitle.toLowerCase();
-        myTitle = myTitle.replaceAll("&", "");
-
-        /*
-         * -------------------------------- bei nicht-Zeitschriften Ats berechnen --------------------------------
-         */
-        // if (!gattung.startsWith("ab") && !gattung.startsWith("ob")) {
-        String autor = getElementFieldValue(myFirstHit, "028A", "a").toLowerCase();
-        if (autor == null || autor.equals("")) {
-            autor = getElementFieldValue(myFirstHit, "028A", "8").toLowerCase();
-        }
-        this.atstsl = createAtstsl(myTitle, autor);
-
-        /*
-         * -------------------------------- bei Zeitschriften noch ein PeriodicalVolume als Child einfügen --------------------------------
-         */
-        // if (isPeriodical()) {
-        if (getOpacDocType().isPeriodical()) {
-            try {
-                DocStructType dstV = inPrefs.getDocStrctTypeByName("PeriodicalVolume");
-                DocStruct dsvolume = inDigDoc.createDocStruct(dstV);
-                topstruct.addChild(dsvolume);
-            } catch (TypeNotAllowedForParentException e) {
-                e.printStackTrace();
-            } catch (TypeNotAllowedAsChildException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
+//    /*
+//     * ##################################################### ##################################################### ## ## Erg�nze das Docstruct um
+//     * zusätzliche Opac-Details ## ##################################################### ####################################################
+//     */
+//
+//    public void checkMyOpacResult(DigitalDocument inDigDoc, Prefs inPrefs, Element myFirstHit, boolean verbose) {
+//        UghHelper ughhelp = new UghHelper();
+//        DocStruct topstruct = inDigDoc.getLogicalDocStruct();
+//        DocStruct boundbook = inDigDoc.getPhysicalDocStruct();
+//        DocStruct topstructChild = null;
+//        Element mySecondHit = null;
+//
+//        /*
+//         * -------------------------------- bei Multivolumes noch das Child in xml und docstruct ermitteln --------------------------------
+//         */
+//        // if (isMultivolume()) {
+//        if (getOpacDocType().isMultiVolume()) {
+//            try {
+//                topstructChild = topstruct.getAllChildren().get(0);
+//            } catch (RuntimeException e) {
+//            }
+//            mySecondHit = (Element) myFirstHit.getParentElement().getChildren().get(1);
+//        }
+//
+//        /*
+//         * -------------------------------- vorhandene PPN als digitale oder analoge einsetzen --------------------------------
+//         */
+//        String epn = getElementFieldValue(myFirstHit, "203@/01", "0");
+//        ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", "");
+//        if (this.gattung.toLowerCase().startsWith("o")) {
+//            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", epn);
+//        } else {
+//            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDSource", epn);
+//        }
+//
+//        /*
+//         * -------------------------------- wenn es ein multivolume ist, dann auch die PPN prüfen --------------------------------
+//         */
+//        if (topstructChild != null && mySecondHit != null) {
+//            String secondHitepn = getElementFieldValue(mySecondHit, "203@/01", "0");
+//            ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", "");
+//            if (this.gattung.toLowerCase().startsWith("o")) {
+//                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", secondHitepn);
+//            } else {
+//                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDSource", secondHitepn);
+//            }
+//        }
+//
+//        String ppn = getElementFieldValue(myFirstHit, "003@", "0");
+//        ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDPicaPPNDigital", "");
+//        if (this.gattung.toLowerCase().startsWith("o")) {
+//            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDPicaPPNDigital", ppn);
+//        } else {
+//            ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDPicaPPN", ppn);
+//        }
+//
+//        /*
+//         * -------------------------------- wenn es ein multivolume ist, dann auch die PPN prüfen --------------------------------
+//         */
+//        if (topstructChild != null && mySecondHit != null) {
+//            String secondHitppn = getElementFieldValue(mySecondHit, "003@", "0");
+//            ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDPicaPPNDigital", "");
+//            if (this.gattung.toLowerCase().startsWith("o")) {
+//                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDPicaPPNDigital", secondHitppn);
+//            } else {
+//                ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDPicaPPN", secondHitppn);
+//            }
+//        }
+//
+//        /*
+//         * -------------------------------- den Main-Title bereinigen --------------------------------
+//         */
+//        String myTitle = getElementFieldValue(myFirstHit, "021A", "a");
+//        /*
+//         * wenn der Fulltittle nicht in dem Element stand, dann an anderer Stelle nachsehen (vor allem bei Contained-Work)
+//         */
+//        if (myTitle == null || myTitle.length() == 0) {
+//            myTitle = getElementFieldValue(myFirstHit, "021B", "a");
+//        }
+//        ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMain", myTitle.replaceAll("@", ""));
+//
+//        /*
+//         * -------------------------------- Sorting-Titel mit Umlaut-Konvertierung --------------------------------
+//         */
+//        if (myTitle.indexOf("@") != -1) {
+//            myTitle = myTitle.substring(myTitle.indexOf("@") + 1);
+//        }
+//        ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMainShort", myTitle);
+//
+//        /*
+//         * -------------------------------- bei multivolumes den Main-Title bereinigen --------------------------------
+//         */
+//        if (topstructChild != null && mySecondHit != null) {
+//            String fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replaceAll("@", "");
+//            ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMain", fulltitleMulti);
+//        }
+//
+//        /*
+//         * -------------------------------- bei multivolumes den Sorting-Titel mit Umlaut-Konvertierung --------------------------------
+//         */
+//        if (topstructChild != null && mySecondHit != null) {
+//            String sortingTitleMulti = getElementFieldValue(mySecondHit, "021A", "a");
+//            if (sortingTitleMulti.indexOf("@") != -1) {
+//                sortingTitleMulti = sortingTitleMulti.substring(sortingTitleMulti.indexOf("@") + 1);
+//            }
+//            ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMainShort", sortingTitleMulti);
+//            // sortingTitle = sortingTitleMulti;
+//        }
+//
+//        /*
+//         * -------------------------------- Sprachen - Konvertierung auf zwei Stellen --------------------------------
+//         */
+//        String sprache = getElementFieldValue(myFirstHit, "010@", "a");
+//        sprache = ughhelp.convertLanguage(sprache);
+//        ughhelp.replaceMetadatum(topstruct, inPrefs, "DocLanguage", sprache);
+//
+//        /*
+//         * -------------------------------- bei multivolumes die Sprachen - Konvertierung auf zwei Stellen --------------------------------
+//         */
+//        if (topstructChild != null && mySecondHit != null) {
+//            String spracheMulti = getElementFieldValue(mySecondHit, "010@", "a");
+//            spracheMulti = ughhelp.convertLanguage(spracheMulti);
+//            ughhelp.replaceMetadatum(topstructChild, inPrefs, "DocLanguage", spracheMulti);
+//        }
+//
+//        /*
+//         * -------------------------------- ISSN --------------------------------
+//         */
+//        String issn = getElementFieldValue(myFirstHit, "005A", "0");
+//        ughhelp.replaceMetadatum(topstruct, inPrefs, "ISSN", issn);
+//
+//        /*
+//         * -------------------------------- Copyright --------------------------------
+//         */
+//        String copyright = getElementFieldValue(myFirstHit, "037I", "a");
+//        ughhelp.replaceMetadatum(boundbook, inPrefs, "copyrightimageset", copyright);
+//
+//        /*
+//         * -------------------------------- Format --------------------------------
+//         */
+//        String format = getElementFieldValue(myFirstHit, "034I", "a");
+//        ughhelp.replaceMetadatum(boundbook, inPrefs, "FormatSourcePrint", format);
+//
+//        /*
+//         * -------------------------------- Umfang --------------------------------
+//         */
+//        String umfang = getElementFieldValue(myFirstHit, "034D", "a");
+//        ughhelp.replaceMetadatum(topstruct, inPrefs, "SizeSourcePrint", umfang);
+//
+//        /*
+//         * -------------------------------- Signatur --------------------------------
+//         */
+//        String sig = getElementFieldValue(myFirstHit, "209A", "c");
+//        if (sig.length() > 0) {
+//            sig = "<" + sig + ">";
+//        }
+//        sig += getElementFieldValue(myFirstHit, "209A", "f") + " ";
+//        sig += getElementFieldValue(myFirstHit, "209A", "a");
+//        ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+//        if (sig.trim().length() == 0) {
+//            myLogger.debug("Signatur part 1: " + sig);
+//            myLogger.debug(myFirstHit.getChildren());
+//            sig = getElementFieldValue(myFirstHit, "209A/01", "c");
+//            if (sig.length() > 0) {
+//                sig = "<" + sig + ">";
+//            }
+//            sig += getElementFieldValue(myFirstHit, "209A/01", "f") + " ";
+//            sig += getElementFieldValue(myFirstHit, "209A/01", "a");
+//            if (mySecondHit != null) {
+//                sig += getElementFieldValue(mySecondHit, "209A", "f") + " ";
+//                sig += getElementFieldValue(mySecondHit, "209A", "a");
+//            }
+//            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+//        }
+//        myLogger.debug("Signatur full: " + sig);
+//
+//        /*
+//         * -------------------------------- Ats Tsl Vorbereitung --------------------------------
+//         */
+//        myTitle = myTitle.toLowerCase();
+//        myTitle = myTitle.replaceAll("&", "");
+//
+//        /*
+//         * -------------------------------- bei nicht-Zeitschriften Ats berechnen --------------------------------
+//         */
+//        // if (!gattung.startsWith("ab") && !gattung.startsWith("ob")) {
+//        String autor = getElementFieldValue(myFirstHit, "028A", "a").toLowerCase();
+//        if (autor == null || autor.equals("")) {
+//            autor = getElementFieldValue(myFirstHit, "028A", "8").toLowerCase();
+//        }
+//        this.atstsl = createAtstsl(myTitle, autor);
+//
+//        /*
+//         * -------------------------------- bei Zeitschriften noch ein PeriodicalVolume als Child einfügen --------------------------------
+//         */
+//        // if (isPeriodical()) {
+//        if (getOpacDocType().isPeriodical()) {
+//            try {
+//                DocStructType dstV = inPrefs.getDocStrctTypeByName("PeriodicalVolume");
+//                DocStruct dsvolume = inDigDoc.createDocStruct(dstV);
+//                topstruct.addChild(dsvolume);
+//            } catch (TypeNotAllowedForParentException e) {
+//                e.printStackTrace();
+//            } catch (TypeNotAllowedAsChildException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//
+//    }
 
     /* (non-Javadoc)
      * @see de.sub.goobi.Import.IOpac#createAtstsl(java.lang.String, java.lang.String)
@@ -491,12 +512,11 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         atstsl = atstsl.replaceAll("[\\W]", "");
         return atstsl;
     }
-    
-    
+
     protected String convertUmlaut(String inString) {
         /* Pfad zur Datei ermitteln */
         String filename = ConfigurationHelper.getInstance().getConfigurationFolder() + "goobi_opacUmlaut.txt";
-//      }
+        //      }
         /* Datei zeilenweise durchlaufen und die Sprache vergleichen */
         try {
             FileInputStream fis = new FileInputStream(filename);
@@ -590,7 +610,6 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         return this.atstsl;
     }
 
- 
     @Override
     public ConfigOpacDoctype getOpacDocType() {
         try {
@@ -629,5 +648,15 @@ public class HaabPicaOpacImport implements IOpacPlugin {
     @Override
     public String getDescription() {
         return "HAABPICA";
+    }
+
+    
+    public void setAtstsl(String createAtstsl) {
+        atstsl = createAtstsl;
+    }
+
+    
+    public String getGattung() {
+        return gattung;
     }
 }
