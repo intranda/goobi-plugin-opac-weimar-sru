@@ -274,7 +274,7 @@ public class SRUHelper {
                 ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDPicaPPNSource", secondHitppn);
             }
         }
-        
+
         /*
          * -------------------------------- den Main-Title bereinigen --------------------------------
          */
@@ -285,6 +285,13 @@ public class SRUHelper {
         if (myTitle == null || myTitle.length() == 0) {
             myTitle = getElementFieldValue(myFirstHit, "021B", "a");
         }
+        if (myTitle == null || myTitle.length() == 0) {
+            myTitle = getElementFieldValue(myFirstHit, "036F", "8");
+        }
+        if (myTitle == null || myTitle.length() == 0) {
+            myTitle = getElementFieldValue(myFirstHit, "027D", "a");
+        }
+      
         ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMain", myTitle.replaceAll("@", ""));
 
         /*
@@ -298,22 +305,39 @@ public class SRUHelper {
         /*
          * -------------------------------- bei multivolumes den Main-Title bereinigen --------------------------------
          */
+        String fulltitleMulti = null;
         if (topstructChild != null && mySecondHit != null) {
-            String fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replaceAll("@", "");
+            
+            fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replaceAll("@", "");
+            if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
+                fulltitleMulti = getElementFieldValue(mySecondHit, "021B", "a");
+            }
+            if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
+                fulltitleMulti = getElementFieldValue(mySecondHit, "036F", "8");
+            }
+            if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
+                fulltitleMulti = getElementFieldValue(mySecondHit, "027D", "a");
+            }
+            if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
+                fulltitleMulti = myTitle;
+            }
+            
+            
             ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMain", fulltitleMulti);
         }
 
         /*
          * -------------------------------- bei multivolumes den Sorting-Titel mit Umlaut-Konvertierung --------------------------------
          */
-        if (topstructChild != null && mySecondHit != null) {
-            String sortingTitleMulti = getElementFieldValue(mySecondHit, "021A", "a");
+        if (topstructChild != null && mySecondHit != null && fulltitleMulti != null) {
+            String sortingTitleMulti = fulltitleMulti;
             if (sortingTitleMulti.indexOf("@") != -1) {
                 sortingTitleMulti = sortingTitleMulti.substring(sortingTitleMulti.indexOf("@") + 1);
             }
             ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMainShort", sortingTitleMulti);
             // sortingTitle = sortingTitleMulti;
         }
+        
 
         /*
          * -------------------------------- Sprachen - Konvertierung auf zwei Stellen --------------------------------
