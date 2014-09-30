@@ -283,7 +283,7 @@ public class SRUHelper {
          * wenn der Fulltittle nicht in dem Element stand, dann an anderer Stelle nachsehen (vor allem bei Contained-Work)
          */
         if (myTitle == null || myTitle.length() == 0) {
-            myTitle = getElementFieldValue(myFirstHit, "021B", "a");
+            myTitle = getElementFieldValue(myFirstHit, "036D", "8");
         }
         if (myTitle == null || myTitle.length() == 0) {
             myTitle = getElementFieldValue(myFirstHit, "036F", "8");
@@ -310,7 +310,7 @@ public class SRUHelper {
             
             fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replaceAll("@", "");
             if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
-                fulltitleMulti = getElementFieldValue(mySecondHit, "021B", "a");
+                fulltitleMulti = getElementFieldValue(mySecondHit, "036D", "8");
             }
             if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
                 fulltitleMulti = getElementFieldValue(mySecondHit, "036F", "8");
