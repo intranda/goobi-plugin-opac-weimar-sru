@@ -10,7 +10,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.log4j.Logger;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -43,8 +42,8 @@ public class SRUHelper {
 
     private static final Namespace PICA = Namespace.getNamespace("pica", "info:srw/schema/5/picaXML-v1.0");
 
-    private static final Logger logger = Logger.getLogger(SRUHelper.class);
-    
+//    private static final Logger logger = Logger.getLogger(SRUHelper.class);
+
     // private static final Namespace DC = Namespace.getNamespace("dc", "http://purl.org/dc/elements/1.1/");
     // private static final Namespace DIAG = Namespace.getNamespace("diag", "http://www.loc.gov/zing/srw/diagnostic/");
     // private static final Namespace XCQL = Namespace.getNamespace("xcql", "http://www.loc.gov/zing/cql/xcql/");
@@ -173,7 +172,7 @@ public class SRUHelper {
                     }
 
                 }
-                
+
             }
             collection.appendChild(picaRecord);
             return answer.getDocumentElement();
@@ -181,7 +180,8 @@ public class SRUHelper {
         return null;
     }
 
-    public static Fileformat parsePicaFormat(HaabSruOpacImport opac, Node pica, Prefs prefs) throws ReadException, PreferencesException, TypeNotAllowedForParentException {
+    public static Fileformat parsePicaFormat(HaabSruOpacImport opac, Node pica, Prefs prefs) throws ReadException, PreferencesException,
+            TypeNotAllowedForParentException {
 
         PicaPlus pp = new PicaPlus(prefs);
         pp.read(pica);
@@ -192,31 +192,29 @@ public class SRUHelper {
         DocStructType dst = prefs.getDocStrctTypeByName("BoundBook");
         DocStruct dsBoundBook = dd.createDocStruct(dst);
         dd.setPhysicalDocStruct(dsBoundBook);
-        
-        checkResult(opac,dd, prefs, pica);
-        
+
+        checkResult(opac, dd, prefs, pica);
+
         return ff;
 
     }
-    
-    
-    
+
     public static void checkResult(HaabSruOpacImport opac, DigitalDocument inDigDoc, Prefs inPrefs, Node pica) {
         Document myJdomDoc = new DOMBuilder().build(pica.getOwnerDocument());
         Element myFirstHit = myJdomDoc.getRootElement().getChild("record");
-        
+
         checkMyOpacResult(opac, inDigDoc, inPrefs, myFirstHit);
 
     }
-    
+
     public static void checkMyOpacResult(IOpacPlugin opac, DigitalDocument inDigDoc, Prefs inPrefs, Element myFirstHit) {
-        
+
         UghHelper ughhelp = new UghHelper();
         DocStruct topstruct = inDigDoc.getLogicalDocStruct();
         DocStruct boundbook = inDigDoc.getPhysicalDocStruct();
         DocStruct topstructChild = null;
         Element mySecondHit = null;
-        
+
         /*
          * -------------------------------- bei Multivolumes noch das Child in xml und docstruct ermitteln --------------------------------
          */
@@ -253,7 +251,6 @@ public class SRUHelper {
             }
         }
 
-        
         String ppn = getElementFieldValue(myFirstHit, "003@", "0");
         ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDPicaPPNDigital", "");
         if (opac.getGattung().toLowerCase().startsWith("o")) {
@@ -291,7 +288,7 @@ public class SRUHelper {
         if (myTitle == null || myTitle.length() == 0) {
             myTitle = getElementFieldValue(myFirstHit, "027D", "a");
         }
-      
+
         ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMain", myTitle.replaceAll("@", ""));
 
         /*
@@ -307,7 +304,7 @@ public class SRUHelper {
          */
         String fulltitleMulti = null;
         if (topstructChild != null && mySecondHit != null) {
-            
+
             fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replaceAll("@", "");
             if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
                 fulltitleMulti = getElementFieldValue(mySecondHit, "036D", "8");
@@ -321,8 +318,7 @@ public class SRUHelper {
             if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
                 fulltitleMulti = myTitle;
             }
-            
-            
+
             ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMain", fulltitleMulti);
         }
 
@@ -337,7 +333,6 @@ public class SRUHelper {
             ughhelp.replaceMetadatum(topstructChild, inPrefs, "TitleDocMainShort", sortingTitleMulti);
             // sortingTitle = sortingTitleMulti;
         }
-        
 
         /*
          * -------------------------------- Sprachen - Konvertierung auf zwei Stellen --------------------------------
@@ -382,29 +377,7 @@ public class SRUHelper {
         /*
          * -------------------------------- Signatur --------------------------------
          */
-        String sig = getElementFieldValue(myFirstHit, "209A", "c");
-        if (sig.length() > 0) {
-            sig = "<" + sig + ">";
-        }
-        sig += getElementFieldValue(myFirstHit, "209A", "f") + " ";
-        sig += getElementFieldValue(myFirstHit, "209A", "a");
-        ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
-        if (sig.trim().length() == 0) {
-            logger.debug("Signatur part 1: " + sig);
-            logger.debug(myFirstHit.getChildren());
-            sig = getElementFieldValue(myFirstHit, "209A/01", "c");
-            if (sig.length() > 0) {
-                sig = "<" + sig + ">";
-            }
-            sig += getElementFieldValue(myFirstHit, "209A/01", "f") + " ";
-            sig += getElementFieldValue(myFirstHit, "209A/01", "a");
-            if (mySecondHit != null) {
-                sig += getElementFieldValue(mySecondHit, "209A", "f") + " ";
-                sig += getElementFieldValue(mySecondHit, "209A", "a");
-            }
-            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
-        }
-        logger.debug("Signatur full: " + sig);
+        getShelfmark(inPrefs, myFirstHit, ughhelp, boundbook, topstruct, topstructChild, mySecondHit);
 
         /*
          * -------------------------------- Ats Tsl Vorbereitung --------------------------------
@@ -420,7 +393,7 @@ public class SRUHelper {
         if (autor == null || autor.equals("")) {
             autor = getElementFieldValue(myFirstHit, "028A", "8").toLowerCase();
         }
-       opac.setAtstsl(opac.createAtstsl(myTitle, autor));
+        opac.setAtstsl(opac.createAtstsl(myTitle, autor));
 
         /*
          * -------------------------------- bei Zeitschriften noch ein PeriodicalVolume als Child einfügen --------------------------------
@@ -439,7 +412,47 @@ public class SRUHelper {
         }
 
     }
-    
+
+    private static void getShelfmark(Prefs inPrefs, Element myFirstHit, UghHelper ughhelp, DocStruct boundbook, DocStruct topstruct, DocStruct child,
+            Element mySecondHit) {
+
+        String sig = getShelfmarkFromHit(myFirstHit);
+        if (sig != null) {
+            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+            ughhelp.replaceMetadatum(topstruct, inPrefs, "shelfmarksource", sig.trim());
+        } else {
+            if (mySecondHit != null && child != null) {
+                sig = getShelfmarkFromHit(mySecondHit);
+                if (sig != null) {
+                    ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+                    ughhelp.replaceMetadatum(child, inPrefs, "shelfmarksource", sig.trim());
+                }
+            }
+        }
+    }
+
+    private static String getShelfmarkFromHit(Element hit) {
+        List<Element> fieldList = hit.getChildren();
+        for (Element field : fieldList) {
+            if (field.getAttributeValue("tag").equals("209A")) {
+                List<Element> subfieldList = field.getChildren();
+                String subfieldA = null;
+                String subfieldX = null;
+                for (Element subfield : subfieldList) {
+                    if (subfield.getAttributeValue("code").equals("x")) {
+                        subfieldX = subfield.getValue();
+                    } else if (subfield.getAttributeValue("code").equals("a")) {
+                        subfieldA = subfield.getValue();
+                    }
+                }
+                if (subfieldX != null && subfieldX.equals("00")) {
+                    return subfieldA;
+                }
+            }
+        }
+        return null;
+    }
+
     public static String getElementFieldValue(Element myFirstHit, String inFieldName, String inAttributeName) {
 
         for (Iterator<Element> iter2 = myFirstHit.getChildren().iterator(); iter2.hasNext();) {
@@ -454,7 +467,7 @@ public class SRUHelper {
         }
         return "";
     }
-    
+
     public static String getFieldValue(Element inElement, String attributeValue) {
         String rueckgabe = "";
 
