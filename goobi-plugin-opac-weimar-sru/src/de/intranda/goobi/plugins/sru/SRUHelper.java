@@ -3,6 +3,7 @@ package de.intranda.goobi.plugins.sru;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class SRUHelper {
 
     private static final Namespace PICA = Namespace.getNamespace("pica", "info:srw/schema/5/picaXML-v1.0");
 
-//    private static final Logger logger = Logger.getLogger(SRUHelper.class);
+    //    private static final Logger logger = Logger.getLogger(SRUHelper.class);
 
     // private static final Namespace DC = Namespace.getNamespace("dc", "http://purl.org/dc/elements/1.1/");
     // private static final Namespace DIAG = Namespace.getNamespace("diag", "http://www.loc.gov/zing/srw/diagnostic/");
@@ -180,7 +181,7 @@ public class SRUHelper {
         return null;
     }
 
-    public static Fileformat parsePicaFormat(HaabSruOpacImport opac, Node pica, Prefs prefs) throws ReadException, PreferencesException,
+    public static Fileformat parsePicaFormat(HaabSruOpacImport opac, Node pica, Prefs prefs, String epn) throws ReadException, PreferencesException,
             TypeNotAllowedForParentException {
 
         PicaPlus pp = new PicaPlus(prefs);
@@ -193,21 +194,21 @@ public class SRUHelper {
         DocStruct dsBoundBook = dd.createDocStruct(dst);
         dd.setPhysicalDocStruct(dsBoundBook);
 
-        checkResult(opac, dd, prefs, pica);
+        checkResult(opac, dd, prefs, pica, epn);
 
         return ff;
 
     }
 
-    public static void checkResult(HaabSruOpacImport opac, DigitalDocument inDigDoc, Prefs inPrefs, Node pica) {
+    public static void checkResult(HaabSruOpacImport opac, DigitalDocument inDigDoc, Prefs inPrefs, Node pica, String epn) {
         Document myJdomDoc = new DOMBuilder().build(pica.getOwnerDocument());
         Element myFirstHit = myJdomDoc.getRootElement().getChild("record");
 
-        checkMyOpacResult(opac, inDigDoc, inPrefs, myFirstHit);
+        checkMyOpacResult(opac, inDigDoc, inPrefs, myFirstHit, epn);
 
     }
 
-    public static void checkMyOpacResult(IOpacPlugin opac, DigitalDocument inDigDoc, Prefs inPrefs, Element myFirstHit) {
+    public static void checkMyOpacResult(IOpacPlugin opac, DigitalDocument inDigDoc, Prefs inPrefs, Element myFirstHit, String searchEpn) {
 
         UghHelper ughhelp = new UghHelper();
         DocStruct topstruct = inDigDoc.getLogicalDocStruct();
@@ -230,7 +231,7 @@ public class SRUHelper {
         /*
          * -------------------------------- vorhandene PPN als digitale oder analoge einsetzen --------------------------------
          */
-        String epn = getElementFieldValue(myFirstHit, "203@", "0");
+        String epn = getElementEPN(myFirstHit, searchEpn);
         ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", "");
         if (opac.getGattung().toLowerCase().startsWith("o")) {
             ughhelp.replaceMetadatum(topstruct, inPrefs, "CatalogIDDigital", epn);
@@ -242,7 +243,7 @@ public class SRUHelper {
          * -------------------------------- wenn es ein multivolume ist, dann auch die PPN prüfen --------------------------------
          */
         if (topstructChild != null && mySecondHit != null) {
-            String secondHitepn = getElementFieldValue(mySecondHit, "203@", "0");
+            String secondHitepn = getElementEPN(mySecondHit, searchEpn);
             ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", "");
             if (opac.getGattung().toLowerCase().startsWith("o")) {
                 ughhelp.replaceMetadatum(topstructChild, inPrefs, "CatalogIDDigital", secondHitepn);
@@ -377,7 +378,7 @@ public class SRUHelper {
         /*
          * -------------------------------- Signatur --------------------------------
          */
-        getShelfmark(inPrefs, myFirstHit, ughhelp, boundbook, topstruct, topstructChild, mySecondHit);
+        getShelfmark(inPrefs, myFirstHit, ughhelp, boundbook, topstruct, topstructChild, mySecondHit, searchEpn);
 
         /*
          * -------------------------------- Ats Tsl Vorbereitung --------------------------------
@@ -414,15 +415,15 @@ public class SRUHelper {
     }
 
     private static void getShelfmark(Prefs inPrefs, Element myFirstHit, UghHelper ughhelp, DocStruct boundbook, DocStruct topstruct, DocStruct child,
-            Element mySecondHit) {
+            Element mySecondHit, String epn) {
 
-        String sig = getShelfmarkFromHit(myFirstHit);
+        String sig = getShelfmarkFromHit(myFirstHit, epn);
         if (sig != null) {
             ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
             ughhelp.replaceMetadatum(topstruct, inPrefs, "shelfmarksource", sig.trim());
         } else {
             if (mySecondHit != null && child != null) {
-                sig = getShelfmarkFromHit(mySecondHit);
+                sig = getShelfmarkFromHit(mySecondHit, epn);
                 if (sig != null) {
                     ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
                     ughhelp.replaceMetadatum(child, inPrefs, "shelfmarksource", sig.trim());
@@ -431,22 +432,57 @@ public class SRUHelper {
         }
     }
 
-    private static String getShelfmarkFromHit(Element hit) {
+    private static String getShelfmarkFromHit(Element hit, String epn) {
         List<Element> fieldList = hit.getChildren();
+
+        String occurrence = "";
         for (Element field : fieldList) {
-            if (field.getAttributeValue("tag").equals("209A")) {
+            if (field.getAttributeValue("tag").equals("203@")) {
                 List<Element> subfieldList = field.getChildren();
-                String subfieldA = null;
-                String subfieldX = null;
+
                 for (Element subfield : subfieldList) {
-                    if (subfield.getAttributeValue("code").equals("x")) {
-                        subfieldX = subfield.getValue();
-                    } else if (subfield.getAttributeValue("code").equals("a")) {
-                        subfieldA = subfield.getValue();
+                    if (subfield.getAttributeValue("code").equals("0")) {
+                        if (subfield.getValue().equals(epn)) {
+                            occurrence = field.getAttributeValue("occurrence");
+                        }
                     }
                 }
-                if (subfieldX != null && subfieldX.equals("00")) {
-                    return subfieldA;
+            }
+        }
+        if (occurrence.isEmpty()) {
+            for (Element field : fieldList) {
+                if (field.getAttributeValue("tag").equals("209A")) {
+                    List<Element> subfieldList = field.getChildren();
+                    String subfieldA = null;
+                    String subfieldX = null;
+                    for (Element subfield : subfieldList) {
+                        if (subfield.getAttributeValue("code").equals("x")) {
+                            subfieldX = subfield.getValue();
+                        } else if (subfield.getAttributeValue("code").equals("a")) {
+                            subfieldA = subfield.getValue();
+                        }
+                    }
+                    if (subfieldX != null && subfieldX.equals("00")) {
+                        return subfieldA;
+                    }
+                }
+            }
+        } else {
+            for (Element field : fieldList) {
+                if (field.getAttributeValue("tag").equals("209A") && field.getAttributeValue("occurrence").equals(occurrence)) {
+                    List<Element> subfieldList = field.getChildren();
+                    String subfieldA = null;
+                    String subfieldX = null;
+                    for (Element subfield : subfieldList) {
+                        if (subfield.getAttributeValue("code").equals("x")) {
+                            subfieldX = subfield.getValue();
+                        } else if (subfield.getAttributeValue("code").equals("a")) {
+                            subfieldA = subfield.getValue();
+                        }
+                    }
+                    if (subfieldX != null && subfieldX.equals("00")) {
+                        return subfieldA;
+                    }
                 }
             }
         }
@@ -466,6 +502,31 @@ public class SRUHelper {
             }
         }
         return "";
+    }
+
+    private static String getElementEPN(Element hit, String epn) {
+
+        List<String> epnList = new ArrayList<String>();
+        List<Element> fieldList = hit.getChildren();
+        for (Element field : fieldList) {
+            if (field.getAttributeValue("tag").equals("203@")) {
+                List<Element> subfieldList = field.getChildren();
+                for (Element subfield : subfieldList) {
+                    if (subfield.getAttributeValue("code").equals("0")) {
+                        epnList.add(subfield.getValue());
+                    }
+                }
+            }
+        }
+        if (epnList.isEmpty()) {
+            return "";
+        }
+        if (epnList.contains(epn)) {
+            return epn;
+        } else {
+            return epnList.get(0);
+        }
+
     }
 
     public static String getFieldValue(Element inElement, String attributeValue) {

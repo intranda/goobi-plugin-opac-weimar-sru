@@ -63,7 +63,7 @@ public class HaabSruOpacImport implements IOpacPlugin {
 
         String value = SRUHelper.search(catalogue, searchField, searchValue);
         Node node = SRUHelper.parseResult(this, catalogue, value);
-        Fileformat ff = SRUHelper.parsePicaFormat(this, node, inPrefs);
+        Fileformat ff = SRUHelper.parsePicaFormat(this, node, inPrefs, searchValue);
 
         return ff;
     }

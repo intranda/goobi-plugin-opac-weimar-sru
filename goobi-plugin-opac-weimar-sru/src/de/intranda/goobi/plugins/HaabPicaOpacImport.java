@@ -35,6 +35,7 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.DOMBuilder;
 import org.jdom2.output.DOMOutputter;
+
 import org.w3c.dom.Node;
 
 import ugh.dl.DigitalDocument;
@@ -196,9 +197,9 @@ public class HaabPicaOpacImport implements IOpacPlugin {
          * -------------------------------- aus Opac-Ergebnis RDF-Datei erzeugen --------------------------------
          */
         /* XML in Datei schreiben */
-//        XMLOutputter outputter = new XMLOutputter();
-//        FileOutputStream output = new FileOutputStream("/home/robert/temp_opac.xml");
-//        outputter.output(myJdomDoc.getRootElement(), output);
+        //        XMLOutputter outputter = new XMLOutputter();
+        //        FileOutputStream output = new FileOutputStream("/home/robert/temp_opac.xml");
+        //        outputter.output(myJdomDoc.getRootElement(), output);
 
         /* myRdf temporär in Datei schreiben */
         // myRdf.write("D:/temp.rdf.xml");
@@ -214,7 +215,7 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         DocStruct dsBoundBook = dd.createDocStruct(dst);
         dd.setPhysicalDocStruct(dsBoundBook);
         /* Inhalt des RDF-Files überprüfen und ergänzen */
-        SRUHelper.checkMyOpacResult(this, ff.getDigitalDocument(), inPrefs, myFirstHit);
+        SRUHelper.checkMyOpacResult(this, ff.getDigitalDocument(), inPrefs, myFirstHit, inSuchbegriff);
 
         // rdftemp.write("D:/PicaRdf.xml");
         return ff;
@@ -276,7 +277,6 @@ public class HaabPicaOpacImport implements IOpacPlugin {
     public int getHitcount() {
         return this.hitcount;
     }
-
 
     /* (non-Javadoc)
      * @see de.sub.goobi.Import.IOpac#createAtstsl(java.lang.String, java.lang.String)
@@ -439,12 +439,10 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         return "HAABPICA";
     }
 
-    
     public void setAtstsl(String createAtstsl) {
         atstsl = createAtstsl;
     }
 
-    
     public String getGattung() {
         return gattung;
     }
