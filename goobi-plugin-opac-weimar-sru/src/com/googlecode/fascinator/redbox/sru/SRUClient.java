@@ -29,9 +29,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
@@ -39,6 +40,8 @@ import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import de.sub.goobi.helper.HttpClientHelper;
 
 /**
  * <p>A light-weight SRU client implementation. Originally written for the purpose
@@ -299,27 +302,6 @@ public class SRUClient {
     }
 
     /**
-     * <p>Get the requested URL and return the GetMethod Object afterwards.
-     * To access more info use its method: eg. GetMethod.getStatusCode() and
-     * GetMethod.getResponseBodyAsString()</p>
-     * 
-     * <p>Internally wraps a Fascinator BasicHttpClient Object, so any configured
-     * proxy details from the system will be used automatically.</p>
-     * 
-     * @param url The URL to retrieve
-     * @return GetMethod The instantiated and executed GetMethod Object.
-     * @throws IOException If any network errors occur accessing the URL. Note
-     * this does not cover HTTP errors returned from the web server; use the
-     * returned Object to check for these.
-     */
-    private GetMethod getUrl(String url) throws IOException {
-        HttpClient client = new HttpClient();
-        GetMethod get = new GetMethod(url);
-        client.executeMethod(get);
-        return get;
-    }
-
-    /**
      * <p>Generate a basic search URL for this SRU interface.</p>
      * 
      * @param query The query String to perform against the SRU interface.
@@ -462,30 +444,25 @@ public class SRUClient {
         }
 
         // Perform the search
-        GetMethod get = null;
-        try {
-            get = getUrl(searchUrl);
-            int status = get.getStatusCode();
-            if (status != 200) {
-                String text = get.getStatusText();
-                log.error("Error access SRU interface, status code '{}' returned with message: {}", status, text);
-                return null;
-            }
-
-        } catch (IOException ex) {
-            log.error("Error during search: ", ex);
-            return null;
-        }
-
-        // Return our results body
         String response = null;
+        CloseableHttpClient client = HttpClientBuilder.create().build();
+        HttpGet method = new HttpGet(searchUrl);
         try {
-            byte[] bla = get.getResponseBody();
-			response = new String(bla, "utf-8");
-        } catch (IOException ex) {
-            log.error("Error accessing response body: ", ex);
-            return null;
+            response = client.execute(method, HttpClientHelper.stringResponseHandler);
+        } catch (IOException e) {
+            log.error("Error during search: ", e);
+        } finally {
+            method.releaseConnection();
+
+            if (client != null) {
+                try {
+                    client.close();
+                } catch (IOException e) {
+                    log.error("Error during search");
+                }
+            }
         }
+        
         return response;
     }
 
