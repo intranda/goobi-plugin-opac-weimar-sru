@@ -68,7 +68,9 @@ public class SRUHelper {
         builder.setFeature("http://xml.org/sax/features/validation", false);
         builder.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
         builder.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-
+        
+        resultString =
+                resultString.replace("&amp;amp;", "&amp;").replace("&amp;quot;", "&quot;").replace("&amp;lt;", "&lt;").replace("&amp;gt;", "&gt;");
         Document doc = builder.build(new StringReader(resultString));
         // srw:searchRetrieveResponse
         Element root = doc.getRootElement();

@@ -20,9 +20,10 @@
 
 package de.intranda.goobi.plugins;
 
-import java.io.IOException;
 
 import net.xeoh.plugins.base.annotations.PluginImplementation;
+
+import java.io.IOException;
 
 import org.apache.log4j.Logger;
 import org.goobi.production.enums.PluginType;
@@ -39,7 +40,6 @@ import de.unigoettingen.sub.search.opac.ConfigOpacDoctype;
 
 @PluginImplementation
 public class HaabSruOpacImport implements IOpacPlugin {
-    private static final Logger logger = Logger.getLogger(HaabSruOpacImport.class);
 
     private int hitcount;
     private String gattung = "Aa";
@@ -83,7 +83,7 @@ public class HaabSruOpacImport implements IOpacPlugin {
     public void setGattung(String gattung) {
         this.gattung = gattung;
     }
-    
+
     public String getGattung() {
         return gattung;
     }
@@ -99,7 +99,7 @@ public class HaabSruOpacImport implements IOpacPlugin {
     public void setAtstsl(String atstsl) {
         this.atstsl = atstsl;
     }
-    
+
     @Override
     public PluginType getType() {
         return PluginType.Opac;
@@ -110,28 +110,25 @@ public class HaabSruOpacImport implements IOpacPlugin {
         return "HAABSRU";
     }
 
-    @Override
     public String getDescription() {
         return "HAABSRU";
     }
 
     @Override
     public ConfigOpacDoctype getOpacDocType() {
+        ConfigOpac co = null;
         try {
-            ConfigOpac co = new ConfigOpac();
-            ConfigOpacDoctype cod = co.getDoctypeByMapping(this.gattung.substring(0, 2), this.coc.getTitle());
-            if (cod == null) {
-
-                cod = new ConfigOpac().getAllDoctypes().get(0);
-                this.gattung = cod.getMappings().get(0);
-
-            }
-            return cod;
+            co = new ConfigOpac();
         } catch (IOException e) {
-            logger.error("OpacDoctype unknown", e);
-
-            return null;
         }
+        ConfigOpacDoctype cod = co.getDoctypeByMapping(this.gattung.substring(0, 2), this.coc.getTitle());
+        if (cod == null) {
+
+            cod = co.getAllDoctypes().get(0);
+            this.gattung = cod.getMappings().get(0);
+
+        }
+        return cod;
     }
 
     public String createAtstsl(String myTitle, String autor) {

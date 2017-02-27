@@ -21,7 +21,6 @@ package de.intranda.goobi.plugins;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Iterator;
@@ -36,7 +35,6 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.input.DOMBuilder;
 import org.jdom2.output.DOMOutputter;
-import org.jdom2.output.XMLOutputter;
 import org.w3c.dom.Node;
 
 import ugh.dl.DigitalDocument;
@@ -79,8 +77,8 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         if (this.coc == null) {
             throw new IOException("Catalogue not found: " + coc.getTitle() + ", please check Configuration in goobi_opac.xml");
         }
-        Catalogue cat =
-                new Catalogue(this.coc.getDescription(), this.coc.getAddress(), this.coc.getPort(), this.coc.getCbs(), this.coc.getDatabase());
+        Catalogue cat = new Catalogue(this.coc.getDescription(), this.coc.getAddress(), this.coc.getPort(), this.coc.getCbs(), this.coc
+                .getDatabase());
         cat.setProtocol(coc.getProtocol());
         if (verbose) {
             Helper.setMeldung(null, Helper.getTranslation("CatalogueUsage") + ": ", this.coc.getDescription());
@@ -199,9 +197,9 @@ public class HaabPicaOpacImport implements IOpacPlugin {
          * -------------------------------- aus Opac-Ergebnis RDF-Datei erzeugen --------------------------------
          */
         /* XML in Datei schreiben */
-//                XMLOutputter outputter = new XMLOutputter();
-//                FileOutputStream output = new FileOutputStream("/home/robert/temp_opac.xml");
-//                outputter.output(myJdomDoc.getRootElement(), output);
+        //                XMLOutputter outputter = new XMLOutputter();
+        //                FileOutputStream output = new FileOutputStream("/home/robert/temp_opac.xml");
+        //                outputter.output(myJdomDoc.getRootElement(), output);
 
         /* myRdf temporär in Datei schreiben */
         // myRdf.write("D:/temp.rdf.xml");
@@ -403,27 +401,25 @@ public class HaabPicaOpacImport implements IOpacPlugin {
 
     @Override
     public ConfigOpacDoctype getOpacDocType() {
+        ConfigOpac co = null;
         try {
-            ConfigOpac co = new ConfigOpac();
-            ConfigOpacDoctype cod = co.getDoctypeByMapping(this.gattung.substring(0, 2), this.coc.getTitle());
-            if (cod == null) {
-                if (verbose) {
-                    Helper.setFehlerMeldung(Helper.getTranslation("CatalogueUnKnownType") + ": ", this.gattung);
-                }
-                cod = new ConfigOpac().getAllDoctypes().get(0);
-                this.gattung = cod.getMappings().get(0);
-                if (verbose) {
-                    Helper.setFehlerMeldung(Helper.getTranslation("CatalogueChangeDocType") + ": ", this.gattung + " - " + cod.getTitle());
-                }
-            }
-            return cod;
+            co = new ConfigOpac();
         } catch (IOException e) {
-            myLogger.error("OpacDoctype unknown", e);
-            if (verbose) {
-                Helper.setFehlerMeldung(Helper.getTranslation("CatalogueUnKnownType"), e);
-            }
-            return null;
         }
+        
+        ConfigOpacDoctype cod = co.getDoctypeByMapping(this.gattung.substring(0, 2), this.coc.getTitle());
+        if (cod == null) {
+            if (verbose) {
+                Helper.setFehlerMeldung(Helper.getTranslation("CatalogueUnKnownType") + ": ", this.gattung);
+            }
+            cod = co.getAllDoctypes().get(0);
+            this.gattung = cod.getMappings().get(0);
+            if (verbose) {
+                Helper.setFehlerMeldung(Helper.getTranslation("CatalogueChangeDocType") + ": ", this.gattung + " - " + cod.getTitle());
+            }
+        }
+        return cod;
+
     }
 
     @Override
@@ -436,7 +432,6 @@ public class HaabPicaOpacImport implements IOpacPlugin {
         return "HAABPICA";
     }
 
-    @Override
     public String getDescription() {
         return "HAABPICA";
     }
