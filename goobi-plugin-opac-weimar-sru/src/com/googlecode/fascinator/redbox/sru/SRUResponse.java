@@ -21,21 +21,21 @@ package com.googlecode.fascinator.redbox.sru;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.dom4j.Document;
 import org.dom4j.Node;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * <p>A trivial wrapper for response Objects, allowing access to common
- * information without having to parse continually.</p>
+ * <p>
+ * A trivial wrapper for response Objects, allowing access to common information without having to parse continually.
+ * </p>
  * 
  * @author Greg Pendlebury
  * 
  */
 public class SRUResponse {
     /** Logging **/
-    private static Logger log = LoggerFactory.getLogger(SRUResponse.class);
+    private static Logger log = Logger.getLogger(SRUResponse.class);
 
     /** Record counts **/
     private int totalRecords = 0;
@@ -45,35 +45,38 @@ public class SRUResponse {
     private List<Node> resultsList;
 
     /**
-     * <p>Default Constructor. Extract some basic information.</p>
+     * <p>
+     * Default Constructor. Extract some basic information.
+     * </p>
      * 
      * @param searchResponse A parsed DOM4J Document
      * @throws SRUException If any of the XML structure does not look like expected
      */
-   
-	@SuppressWarnings("unchecked")
-	public SRUResponse(Document searchResponse) throws SRUException {
+
+    @SuppressWarnings("unchecked")
+    public SRUResponse(Document searchResponse) throws SRUException {
         // Results total
         Node number = searchResponse.selectSingleNode("//srw:numberOfRecords");
         if (number == null) {
             throw new SRUException("Unable to get result numbers from response XML.");
         }
         totalRecords = Integer.parseInt(number.getText());
-        log.debug("SRU Search found {} results(s)", totalRecords);
+        log.debug("SRU Search found " + totalRecords + " results(s)");
 
         // Results List
         if (totalRecords == 0) {
             resultsList = new ArrayList<Node>();
         } else {
-        	
+
             resultsList = searchResponse.selectNodes("//srw:recordData");
         }
         recordsReturned = resultsList.size();
     }
 
     /**
-     * <p>Get the number of rows returned by this search. Not the total results
-     * that match the search.</p>
+     * <p>
+     * Get the number of rows returned by this search. Not the total results that match the search.
+     * </p>
      * 
      * @return int The number of rows returned from this search.
      */
@@ -82,9 +85,10 @@ public class SRUResponse {
     }
 
     /**
-     * <p>Get the number of records that match this search. A subset of this
-     * will be returned if the total is higher then the number of rows requested
-     * (or defaulted).</p>
+     * <p>
+     * Get the number of records that match this search. A subset of this will be returned if the total is higher then the number of rows requested
+     * (or defaulted).
+     * </p>
      * 
      * @return int The number of records that match this search.
      */
@@ -93,8 +97,9 @@ public class SRUResponse {
     }
 
     /**
-     * <p>Return the List of DOM4J Nodes extracted from the SRU XML wrapping
-     * it.</p>
+     * <p>
+     * Return the List of DOM4J Nodes extracted from the SRU XML wrapping it.
+     * </p>
      * 
      * @return int The number of records that match this search.
      */

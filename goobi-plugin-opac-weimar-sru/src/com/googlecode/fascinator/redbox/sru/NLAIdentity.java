@@ -23,10 +23,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.dom4j.Element;
 import org.dom4j.Node;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 
 /**
  * <p>A basic wrapper for handling EAC-CPF formatted identities that return for
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 public class NLAIdentity {
     /** Logging **/
-    private static Logger log = LoggerFactory.getLogger(NLAIdentity.class);
+    private static Logger log = Logger.getLogger(NLAIdentity.class);
 
     /** DOM4J Node for this person **/
     private Node eac;

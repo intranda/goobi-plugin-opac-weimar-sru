@@ -33,13 +33,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.log4j.Logger;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import de.sub.goobi.helper.HttpClientHelper;
 
@@ -58,7 +57,7 @@ import de.sub.goobi.helper.HttpClientHelper;
  */
 public class SRUClient {
     /** Logging **/
-    private static Logger log = LoggerFactory.getLogger(SRUClient.class);
+    private static Logger log = Logger.getLogger(SRUClient.class);
 
     /** A SAX Reader for XML parsing **/
     private SAXReader saxReader;
@@ -296,7 +295,7 @@ public class SRUClient {
         try {
             return URLEncoder.encode(value, "UTF-8");
         } catch (UnsupportedEncodingException ex) {
-            log.error("Error UTF-8 encoding value '{}'", value, ex);
+            log.error("Error UTF-8 encoding value '" + value + "'",ex);
             return "";
         }
     }
