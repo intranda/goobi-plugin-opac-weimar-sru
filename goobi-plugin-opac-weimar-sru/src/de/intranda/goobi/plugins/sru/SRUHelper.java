@@ -69,8 +69,6 @@ public class SRUHelper {
         builder.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
         builder.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
         
-        resultString =
-                resultString.replace("&amp;amp;", "&amp;").replace("&amp;quot;", "&quot;").replace("&amp;lt;", "&lt;").replace("&amp;gt;", "&gt;");
         Document doc = builder.build(new StringReader(resultString));
         // srw:searchRetrieveResponse
         Element root = doc.getRootElement();
@@ -136,8 +134,7 @@ public class SRUHelper {
 
             if (isMultiVolume) {
                 String anchorResult = SRUHelper.search(catalogue, "pica.ppn", anchorIdentifier);
-                anchorResult =
-                        anchorResult.replace("&amp;amp;", "&amp;").replace("&amp;quot;", "&quot;").replace("&amp;lt;", "&lt;").replace("&amp;gt;", "&gt;");
+              
                 Document anchorDoc = new SAXBuilder().build(new StringReader(anchorResult), "utf-8");
 
                 // srw:searchRetrieveResponse
@@ -171,8 +168,9 @@ public class SRUHelper {
                                 String code = sub.getAttributeValue("code");
                                 subfield.setAttribute("code", code);
                                 Text text = answer.createTextNode(sub.getText());
-                                subfield.appendChild(text);
+                                subfield.appendChild(text);       
                             }
+                            
                         }
                     }
 
