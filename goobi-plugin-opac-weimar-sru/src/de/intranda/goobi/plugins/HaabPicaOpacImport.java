@@ -402,10 +402,12 @@ public class HaabPicaOpacImport implements IOpacPlugin {
     @Override
     public ConfigOpacDoctype getOpacDocType() {
         ConfigOpac co = null;
-        try {
-            co = new ConfigOpac();
-        } catch (IOException e) {
-        }
+      try {
+      co = new ConfigOpac();
+  } catch (IOException e) {
+  }
+//  co = ConfigOpac.getInstance();
+
         
         ConfigOpacDoctype cod = co.getDoctypeByMapping(this.gattung.substring(0, 2), this.coc.getTitle());
         if (cod == null) {

@@ -121,6 +121,7 @@ public class HaabSruOpacImport implements IOpacPlugin {
             co = new ConfigOpac();
         } catch (IOException e) {
         }
+//        co = ConfigOpac.getInstance();
         ConfigOpacDoctype cod = co.getDoctypeByMapping(this.gattung.substring(0, 2), this.coc.getTitle());
         if (cod == null) {
 

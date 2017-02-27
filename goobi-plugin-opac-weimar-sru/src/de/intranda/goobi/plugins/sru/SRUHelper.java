@@ -136,6 +136,8 @@ public class SRUHelper {
 
             if (isMultiVolume) {
                 String anchorResult = SRUHelper.search(catalogue, "pica.ppn", anchorIdentifier);
+                anchorResult =
+                        anchorResult.replace("&amp;amp;", "&amp;").replace("&amp;quot;", "&quot;").replace("&amp;lt;", "&lt;").replace("&amp;gt;", "&gt;");
                 Document anchorDoc = new SAXBuilder().build(new StringReader(anchorResult), "utf-8");
 
                 // srw:searchRetrieveResponse
