@@ -337,46 +337,7 @@ public class SRUHelper {
             // sortingTitle = sortingTitleMulti;
         }
 
-        /*
-         * -------------------------------- Sprachen - Konvertierung auf zwei Stellen --------------------------------
-         */
-        String sprache = getElementFieldValue(myFirstHit, "010@", "a");
-        sprache = ughhelp.convertLanguage(sprache);
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "DocLanguage", sprache);
-
-        /*
-         * -------------------------------- bei multivolumes die Sprachen - Konvertierung auf zwei Stellen --------------------------------
-         */
-        if (topstructChild != null && mySecondHit != null) {
-            String spracheMulti = getElementFieldValue(mySecondHit, "010@", "a");
-            spracheMulti = ughhelp.convertLanguage(spracheMulti);
-            ughhelp.replaceMetadatum(topstructChild, inPrefs, "DocLanguage", spracheMulti);
-        }
-
-        /*
-         * -------------------------------- ISSN --------------------------------
-         */
-        String issn = getElementFieldValue(myFirstHit, "005A", "0");
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "ISSN", issn);
-
-        /*
-         * -------------------------------- Copyright --------------------------------
-         */
-        String copyright = getElementFieldValue(myFirstHit, "037I", "a");
-        ughhelp.replaceMetadatum(boundbook, inPrefs, "copyrightimageset", copyright);
-
-        /*
-         * -------------------------------- Format --------------------------------
-         */
-        String format = getElementFieldValue(myFirstHit, "034I", "a");
-        ughhelp.replaceMetadatum(boundbook, inPrefs, "FormatSourcePrint", format);
-
-        /*
-         * -------------------------------- Umfang --------------------------------
-         */
-        String umfang = getElementFieldValue(myFirstHit, "034D", "a");
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "SizeSourcePrint", umfang);
-
+       
         /*
          * -------------------------------- Signatur --------------------------------
          */
@@ -421,13 +382,13 @@ public class SRUHelper {
 
         String sig = getShelfmarkFromHit(myFirstHit, epn);
         if (sig != null) {
-            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+//            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
             ughhelp.replaceMetadatum(topstruct, inPrefs, "shelfmarksource", sig.trim());
         } else {
             if (mySecondHit != null && child != null) {
                 sig = getShelfmarkFromHit(mySecondHit, epn);
                 if (sig != null) {
-                    ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+//                    ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
                     ughhelp.replaceMetadatum(child, inPrefs, "shelfmarksource", sig.trim());
                 }
             }
