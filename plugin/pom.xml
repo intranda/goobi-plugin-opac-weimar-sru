@@ -6,7 +6,7 @@
   <properties>
     <jar.name>plugin_intranda_opac_weimar</jar.name>
     <dest.folder>/opt/digiverso/goobi/plugins/opac/</dest.folder>
-    <goobi.version>22.02.2</goobi.version>
+    <goobi.version>22.03.1-SNAPSHOT</goobi.version>
   </properties>
   <distributionManagement>
     <repository>
