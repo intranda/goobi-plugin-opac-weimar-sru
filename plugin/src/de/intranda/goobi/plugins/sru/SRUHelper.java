@@ -11,6 +11,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.goobi.api.sru.SRUClient;
 import org.goobi.production.plugin.interfaces.IOpacPlugin;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -21,6 +22,8 @@ import org.jdom2.input.SAXBuilder;
 import org.w3c.dom.Node;
 import org.w3c.dom.Text;
 
+import de.intranda.goobi.plugins.HaabSruOpacImport;
+import de.sub.goobi.helper.UghHelper;
 import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
 import ugh.dl.DocStructType;
@@ -32,11 +35,6 @@ import ugh.exceptions.TypeNotAllowedAsChildException;
 import ugh.exceptions.TypeNotAllowedForParentException;
 import ugh.fileformats.mets.XStream;
 import ugh.fileformats.opac.PicaPlus;
-
-import com.googlecode.fascinator.redbox.sru.SRUClient;
-
-import de.intranda.goobi.plugins.HaabSruOpacImport;
-import de.sub.goobi.helper.UghHelper;
 
 public class SRUHelper {
     private static final Namespace SRW = Namespace.getNamespace("srw", "http://www.loc.gov/zing/srw/");
@@ -61,14 +59,14 @@ public class SRUHelper {
 
     @SuppressWarnings("deprecation")
     public static Node parseResult(HaabSruOpacImport opac, String catalogue, String resultString) throws IOException, JDOMException,
-            ParserConfigurationException {
+    ParserConfigurationException {
         // removed validation against external dtd
         SAXBuilder builder = new SAXBuilder(false);
         builder.setValidation(false);
         builder.setFeature("http://xml.org/sax/features/validation", false);
         builder.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
         builder.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-        
+
         Document doc = builder.build(new StringReader(resultString));
         // srw:searchRetrieveResponse
         Element root = doc.getRootElement();
@@ -134,7 +132,7 @@ public class SRUHelper {
 
             if (isMultiVolume) {
                 String anchorResult = SRUHelper.search(catalogue, "pica.ppn", anchorIdentifier);
-              
+
                 Document anchorDoc = new SAXBuilder().build(new StringReader(anchorResult), "utf-8");
 
                 // srw:searchRetrieveResponse
@@ -168,9 +166,9 @@ public class SRUHelper {
                                 String code = sub.getAttributeValue("code");
                                 subfield.setAttribute("code", code);
                                 Text text = answer.createTextNode(sub.getText());
-                                subfield.appendChild(text);       
+                                subfield.appendChild(text);
                             }
-                            
+
                         }
                     }
 
@@ -184,7 +182,7 @@ public class SRUHelper {
     }
 
     public static Fileformat parsePicaFormat(HaabSruOpacImport opac, Node pica, Prefs prefs, String epn) throws ReadException, PreferencesException,
-            TypeNotAllowedForParentException {
+    TypeNotAllowedForParentException {
 
         PicaPlus pp = new PicaPlus(prefs);
         pp.read(pica);
@@ -227,7 +225,7 @@ public class SRUHelper {
                 topstructChild = topstruct.getAllChildren().get(0);
             } catch (RuntimeException e) {
             }
-            mySecondHit = (Element) myFirstHit.getParentElement().getChildren().get(1);
+            mySecondHit = myFirstHit.getParentElement().getChildren().get(1);
         }
 
         /*
@@ -337,7 +335,7 @@ public class SRUHelper {
             // sortingTitle = sortingTitleMulti;
         }
 
-       
+
         /*
          * -------------------------------- Signatur --------------------------------
          */
@@ -382,13 +380,13 @@ public class SRUHelper {
 
         String sig = getShelfmarkFromHit(myFirstHit, epn);
         if (sig != null) {
-//            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+            //            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
             ughhelp.replaceMetadatum(topstruct, inPrefs, "shelfmarksource", sig.trim());
         } else {
             if (mySecondHit != null && child != null) {
                 sig = getShelfmarkFromHit(mySecondHit, epn);
                 if (sig != null) {
-//                    ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+                    //                    ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
                     ughhelp.replaceMetadatum(child, inPrefs, "shelfmarksource", sig.trim());
                 }
             }
@@ -469,7 +467,7 @@ public class SRUHelper {
 
     private static String getElementEPN(Element hit, String epn) {
 
-        List<String> epnList = new ArrayList<String>();
+        List<String> epnList = new ArrayList<>();
         List<Element> fieldList = hit.getChildren();
         for (Element field : fieldList) {
             if (field.getAttributeValue("tag").equals("203@")) {
