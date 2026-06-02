@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -18,12 +17,12 @@ import org.jdom2.Element;
 import org.jdom2.JDOMException;
 import org.jdom2.Namespace;
 import org.jdom2.input.DOMBuilder;
-import org.jdom2.input.SAXBuilder;
 import org.w3c.dom.Node;
 import org.w3c.dom.Text;
 
 import de.intranda.goobi.plugins.HaabSruOpacImport;
 import de.sub.goobi.helper.UghHelper;
+import de.sub.goobi.helper.XmlTools;
 import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
 import ugh.dl.DocStructType;
@@ -57,17 +56,10 @@ public class SRUHelper {
         return "";
     }
 
-    @SuppressWarnings("deprecation")
     public static Node parseResult(HaabSruOpacImport opac, String catalogue, String resultString) throws IOException, JDOMException,
-    ParserConfigurationException {
+            ParserConfigurationException {
         // removed validation against external dtd
-        SAXBuilder builder = new SAXBuilder(false);
-        builder.setValidation(false);
-        builder.setFeature("http://xml.org/sax/features/validation", false);
-        builder.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
-        builder.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-
-        Document doc = builder.build(new StringReader(resultString));
+        Document doc = XmlTools.getSAXBuilder().build(new StringReader(resultString));
         // srw:searchRetrieveResponse
         Element root = doc.getRootElement();
         // <srw:records>
@@ -120,10 +112,10 @@ public class SRUHelper {
                         subfield.setAttribute("code", code);
                         Text text = answer.createTextNode(sub.getText());
                         subfield.appendChild(text);
-                        if (tag.equals("036D") && code.equals("9")) {
+                        if ("036D".equals(tag) && "9".equals(code)) {
                             isMultiVolume = true;
                             anchorIdentifier = sub.getText();
-                        } else if (tag.equals("002@") && code.equals("0")) {
+                        } else if ("002@".equals(tag) && "0".equals(code)) {
                             opac.setGattung(sub.getText());
                         }
                     }
@@ -133,7 +125,7 @@ public class SRUHelper {
             if (isMultiVolume) {
                 String anchorResult = SRUHelper.search(catalogue, "pica.ppn", anchorIdentifier);
 
-                Document anchorDoc = new SAXBuilder().build(new StringReader(anchorResult), "utf-8");
+                Document anchorDoc = XmlTools.getSAXBuilder().build(new StringReader(anchorResult), "utf-8");
 
                 // srw:searchRetrieveResponse
                 Element anchorRoot = anchorDoc.getRootElement();
@@ -182,7 +174,7 @@ public class SRUHelper {
     }
 
     public static Fileformat parsePicaFormat(HaabSruOpacImport opac, Node pica, Prefs prefs, String epn) throws ReadException, PreferencesException,
-    TypeNotAllowedForParentException {
+            TypeNotAllowedForParentException {
 
         PicaPlus pp = new PicaPlus(prefs);
         pp.read(pica);
@@ -290,7 +282,7 @@ public class SRUHelper {
             myTitle = getElementFieldValue(myFirstHit, "027D", "a");
         }
 
-        ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMain", myTitle.replaceAll("@", ""));
+        ughhelp.replaceMetadatum(topstruct, inPrefs, "TitleDocMain", myTitle.replace("@", ""));
 
         /*
          * -------------------------------- Sorting-Titel mit Umlaut-Konvertierung --------------------------------
@@ -306,7 +298,7 @@ public class SRUHelper {
         String fulltitleMulti = null;
         if (topstructChild != null && mySecondHit != null) {
 
-            fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replaceAll("@", "");
+            fulltitleMulti = getElementFieldValue(mySecondHit, "021A", "a").replace("@", "");
             if (fulltitleMulti == null || fulltitleMulti.length() == 0) {
                 fulltitleMulti = getElementFieldValue(mySecondHit, "036D", "8");
             }
@@ -335,7 +327,6 @@ public class SRUHelper {
             // sortingTitle = sortingTitleMulti;
         }
 
-
         /*
          * -------------------------------- Signatur --------------------------------
          */
@@ -345,14 +336,14 @@ public class SRUHelper {
          * -------------------------------- Ats Tsl Vorbereitung --------------------------------
          */
         myTitle = myTitle.toLowerCase();
-        myTitle = myTitle.replaceAll("&", "");
+        myTitle = myTitle.replace("&", "");
 
         /*
          * -------------------------------- bei nicht-Zeitschriften Ats berechnen --------------------------------
          */
         // if (!gattung.startsWith("ab") && !gattung.startsWith("ob")) {
         String autor = getElementFieldValue(myFirstHit, "028A", "a").toLowerCase();
-        if (autor == null || autor.equals("")) {
+        if (autor == null || "".equals(autor)) {
             autor = getElementFieldValue(myFirstHit, "028A", "8").toLowerCase();
         }
         opac.setAtstsl(opac.createAtstsl(myTitle, autor));
@@ -366,9 +357,7 @@ public class SRUHelper {
                 DocStructType dstV = inPrefs.getDocStrctTypeByName("PeriodicalVolume");
                 DocStruct dsvolume = inDigDoc.createDocStruct(dstV);
                 topstruct.addChild(dsvolume);
-            } catch (TypeNotAllowedForParentException e) {
-                e.printStackTrace();
-            } catch (TypeNotAllowedAsChildException e) {
+            } catch (TypeNotAllowedForParentException | TypeNotAllowedAsChildException e) {
                 e.printStackTrace();
             }
         }
@@ -382,13 +371,11 @@ public class SRUHelper {
         if (sig != null) {
             //            ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
             ughhelp.replaceMetadatum(topstruct, inPrefs, "shelfmarksource", sig.trim());
-        } else {
-            if (mySecondHit != null && child != null) {
-                sig = getShelfmarkFromHit(mySecondHit, epn);
-                if (sig != null) {
-                    //                    ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
-                    ughhelp.replaceMetadatum(child, inPrefs, "shelfmarksource", sig.trim());
-                }
+        } else if (mySecondHit != null && child != null) {
+            sig = getShelfmarkFromHit(mySecondHit, epn);
+            if (sig != null) {
+                //                    ughhelp.replaceMetadatum(boundbook, inPrefs, "shelfmarksource", sig.trim());
+                ughhelp.replaceMetadatum(child, inPrefs, "shelfmarksource", sig.trim());
             }
         }
     }
@@ -398,11 +385,11 @@ public class SRUHelper {
 
         String occurrence = "";
         for (Element field : fieldList) {
-            if (field.getAttributeValue("tag").equals("203@")) {
+            if ("203@".equals(field.getAttributeValue("tag"))) {
                 List<Element> subfieldList = field.getChildren();
 
                 for (Element subfield : subfieldList) {
-                    if (subfield.getAttributeValue("code").equals("0")) {
+                    if ("0".equals(subfield.getAttributeValue("code"))) {
                         if (subfield.getValue().equals(epn)) {
                             occurrence = field.getAttributeValue("occurrence");
                         }
@@ -412,36 +399,36 @@ public class SRUHelper {
         }
         if (occurrence.isEmpty()) {
             for (Element field : fieldList) {
-                if (field.getAttributeValue("tag").equals("209A")) {
+                if ("209A".equals(field.getAttributeValue("tag"))) {
                     List<Element> subfieldList = field.getChildren();
                     String subfieldA = null;
                     String subfieldX = null;
                     for (Element subfield : subfieldList) {
-                        if (subfield.getAttributeValue("code").equals("x")) {
+                        if ("x".equals(subfield.getAttributeValue("code"))) {
                             subfieldX = subfield.getValue();
-                        } else if (subfield.getAttributeValue("code").equals("a")) {
+                        } else if ("a".equals(subfield.getAttributeValue("code"))) {
                             subfieldA = subfield.getValue();
                         }
                     }
-                    if (subfieldX != null && subfieldX.equals("00")) {
+                    if (subfieldX != null && "00".equals(subfieldX)) {
                         return subfieldA;
                     }
                 }
             }
         } else {
             for (Element field : fieldList) {
-                if (field.getAttributeValue("tag").equals("209A") && field.getAttributeValue("occurrence").equals(occurrence)) {
+                if ("209A".equals(field.getAttributeValue("tag")) && field.getAttributeValue("occurrence").equals(occurrence)) {
                     List<Element> subfieldList = field.getChildren();
                     String subfieldA = null;
                     String subfieldX = null;
                     for (Element subfield : subfieldList) {
-                        if (subfield.getAttributeValue("code").equals("x")) {
+                        if ("x".equals(subfield.getAttributeValue("code"))) {
                             subfieldX = subfield.getValue();
-                        } else if (subfield.getAttributeValue("code").equals("a")) {
+                        } else if ("a".equals(subfield.getAttributeValue("code"))) {
                             subfieldA = subfield.getValue();
                         }
                     }
-                    if (subfieldX != null && subfieldX.equals("00")) {
+                    if (subfieldX != null && "00".equals(subfieldX)) {
                         return subfieldA;
                     }
                 }
@@ -452,8 +439,7 @@ public class SRUHelper {
 
     public static String getElementFieldValue(Element myFirstHit, String inFieldName, String inAttributeName) {
 
-        for (Iterator<Element> iter2 = myFirstHit.getChildren().iterator(); iter2.hasNext();) {
-            Element myElement = iter2.next();
+        for (Element myElement : myFirstHit.getChildren()) {
             String feldname = myElement.getAttributeValue("tag");
             /*
              * wenn es das gesuchte Feld ist, dann den Wert mit dem passenden Attribut zurückgeben
@@ -470,10 +456,10 @@ public class SRUHelper {
         List<String> epnList = new ArrayList<>();
         List<Element> fieldList = hit.getChildren();
         for (Element field : fieldList) {
-            if (field.getAttributeValue("tag").equals("203@")) {
+            if ("203@".equals(field.getAttributeValue("tag"))) {
                 List<Element> subfieldList = field.getChildren();
                 for (Element subfield : subfieldList) {
-                    if (subfield.getAttributeValue("code").equals("0")) {
+                    if ("0".equals(subfield.getAttributeValue("code"))) {
                         epnList.add(subfield.getValue());
                     }
                 }
@@ -493,8 +479,7 @@ public class SRUHelper {
     public static String getFieldValue(Element inElement, String attributeValue) {
         String rueckgabe = "";
 
-        for (Iterator<Element> iter = inElement.getChildren().iterator(); iter.hasNext();) {
-            Element subElement = iter.next();
+        for (Element subElement : inElement.getChildren()) {
             if (subElement.getAttributeValue("code").equals(attributeValue)) {
                 rueckgabe = subElement.getValue();
             }
